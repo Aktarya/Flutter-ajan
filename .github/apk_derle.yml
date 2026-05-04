@@ -1,0 +1,41 @@
+name: Otonom APK Uretici
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Kodu Klonla
+      uses: actions/checkout@v4
+
+    - name: Java Kurulumu
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Flutter Kurulumu
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+
+    - name: Arka Planda Proje Olustur ve Kodu Birlestir
+      run: |
+        flutter create mobil_uygulama
+        cp main.dart mobil_uygulama/lib/main.dart
+
+    - name: APK Derle
+      run: |
+        cd mobil_uygulama
+        flutter build apk --release
+
+    - name: APK Dosyasini Kaydet
+      uses: actions/upload-artifact@v4
+      with:
+        name: Saat_Uygulamasi_APK
+        path: mobil_uygulama/build/app/outputs/flutter-apk/app-release.apk
