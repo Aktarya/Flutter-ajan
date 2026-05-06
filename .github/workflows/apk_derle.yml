@@ -32,7 +32,7 @@ jobs:
     - name: APK Derle
       run: |
         cd mobil_uygulama
-        flutter build apk --release
+        flutter build apk --release --target-platform android-arm64
 
     - name: APK Dosyasini Kaydet
       uses: actions/upload-artifact@v4
