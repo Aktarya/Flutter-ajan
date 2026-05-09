@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "main" ]
 
-# Sunucunun (Runner) bizim depomuza kalıcı dosya yükleyebilmesi için KRİTİK İZİN
 permissions:
   contents: write
 
@@ -31,7 +30,9 @@ jobs:
         # Eğer pubspec.yaml depoda yoksa, sıfırdan kalıcı proje dosyalarını üret
         if [ ! -f "pubspec.yaml" ]; then
           echo "Kalıcı proje dosyaları bulunamadı. Üretiliyor..."
-          flutter create . --force --project-name flutter_ajani
+          
+          # Hatalı --force bayrağı kaldırıldı, standart ve doğru kullanım:
+          flutter create . --project-name flutter_ajani
           
           # Dışarıda duran main.dart dosyasını lib/ klasörüne taşı
           mkdir -p lib
