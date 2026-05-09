@@ -1,14 +1,16 @@
-name: Otonom APK Uretici
+name: Otonom APK Uretici ve Altyapi Kurucu
 
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch:
+
+# Sunucunun (Runner) bizim depomuza kalıcı dosya yükleyebilmesi için KRİTİK İZİN
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
     - name: Kodu Klonla
       uses: actions/checkout@v4
@@ -24,18 +26,38 @@ jobs:
       with:
         channel: 'stable'
 
-    - name: Arka Planda Proje Olustur ve Kodu Birlestir
+    - name: Kalici Proje Dosyalarini Uret ve Depoya Geri Yükle
       run: |
-        flutter create mobil_uygulama
-        cp main.dart mobil_uygulama/lib/main.dart
+        # Eğer pubspec.yaml depoda yoksa, sıfırdan kalıcı proje dosyalarını üret
+        if [ ! -f "pubspec.yaml" ]; then
+          echo "Kalıcı proje dosyaları bulunamadı. Üretiliyor..."
+          flutter create . --force --project-name flutter_ajani
+          
+          # Dışarıda duran main.dart dosyasını lib/ klasörüne taşı
+          mkdir -p lib
+          if [ -f "main.dart" ]; then
+            mv main.dart lib/main.dart
+          fi
+          
+          # GitHub Actions botuna kimlik ver ve kalıcı olarak depoya pushla
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Altyapı: Kalıcı Flutter proje dosyaları sunucu tarafından eklendi"
+          git push origin main
+          echo "BAŞARILI: Proje dosyaları kalıcı olarak ana depoya gönderildi!"
+        else
+          echo "Proje dosyaları zaten mevcut, doğrudan derleme aşamasına geçiliyor."
+        fi
+
+    - name: Paketleri Getir (Kutuphane Kurulumu)
+      run: flutter pub get
 
     - name: APK Derle
-      run: |
-        cd mobil_uygulama
-        flutter build apk --release --target-platform android-arm64
+      run: flutter build apk --release --target-platform android-arm64
 
-    - name: APK Dosyasini Kaydet
+    - name: APK Kaydet
       uses: actions/upload-artifact@v4
       with:
-        name: Saat_Uygulamasi_APK
-        path: mobil_uygulama/build/app/outputs/flutter-apk/app-release.apk
+        name: Ajan_APK
+        path: build/app/outputs/flutter-apk/app-release.apk
