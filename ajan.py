@@ -32,12 +32,12 @@ Kullanabileceğin Araç Cephaneliği:
 1. "internette_ara": Map-Reduce örümcek motoruyla derinlemesine araştırma yapar. Parametre: {"sorgu_amaci": "araştırılacak konu"}
 2. "dosya_oku": Belirtilen dosyanın içeriğini okur. Parametre: {"dosya_yolu": "yol/dosya.ext"}
 3. "dart_kodu_yaz": Sadece 'lib/' klasörü içine Dart kodu yazar. Parametre: {"dosya_alt_yolu": "main.dart", "icerik": "kodlar"}
-4. "kutuphane_ekle": pubspec.yaml dosyasına kütüphane ekler. Parametre: {"paket_adi": "provider", "surum": "any"}
+4. "kutuphane_ekle": pubspec.yaml dosyasına kütüphane ekler. Eğer kodların içinde 'provider', 'flutter_svg' gibi harici paketler kullanıyorsan, DART KODUNU YAZMADAN ÖNCE MUTLAKA 'kutuphane_ekle' aracıyla bu paketleri pubspec.yaml'a ekle! Aksi takdirde derleyici kütüphaneyi bulamaz ve çöker. Parametre: {"paket_adi": "provider", "surum": "any"}
 5. "uygulama_ismini_degistir": Android uygulamasının adını günceller. Parametre: {"yeni_isim": "Harika Uygulama"}
 6. "android_izni_ekle": AndroidManifest.xml'e cihaz izni ekler. Parametre: {"izin_adi": "INTERNET"}
 7. "asset_dosyasi_yaz": 'assets/' klasörüne veri yazar. Parametre: {"dosya_alt_yolu": "veri.json", "icerik": "metin"}
 8. "asset_klasorunu_tanimla": pubspec.yaml dosyasına assets/ dizinini kaydeder. Parametre: {}
-9. "svg_uret": Otonom ressam/kritik döngüsüyle SVG varlığı üretir. Parametre: {"gorsel_alani": "arkaplan", "dosya_alt_yolu": "bg.svg", "tema_ozeti": "koyu, neon mavi", "istek": "Soyut dalgalar"}
+9. "svg_uret": Otonom ressam/kritik döngüsüyle SVG varlığı üretir. görsel alan daha önce üretilmiş bir görsele geri dönüp üzerinde çalışmayı sağlarken dosya yolu üretilen görselin direkt olarak assets/ klasörü altında tam adı ve uzantısıyla otomatik yerleşimini sağlar. Parametre: {"gorsel_alani": "arkaplan", "dosya_alt_yolu": "bg.svg", "tema_ozeti": "koyu, neon mavi", "istek": "Soyut dalgalar"}
 10. "android_logosu_uret": Otonom XML vektör döngüsüyle logo üretir ve Manifest'e bağlar. Parametre: {"istek": "Minimalist saat ikonu", "tema_ozeti": "koyu tema, estetik"}
 11. "dosya_sil": lib/ veya assets/ altındaki gereksiz dosyaları ve boş klasörleri temizler. Parametre: {"dosya_yolu": "lib/eski.dart"}
 12. "kullaniciya_sor": İNSAN DÖNGÜSÜ FRENİ. Tıkandığında, emin olamadığında, kritik bir tasarım kararı alman gerektiğinde veya kullanıcıdan yönlendirme/onay istediğin HERHANGİ BİR ANDA sormaktan çekinme. Parametre: {"soru": "Kullanıcıya sorulacak net soru"}
@@ -131,7 +131,8 @@ while adim < maksimum_adim:
         gecmis.append({"role": "model", "parts": [{"text": yanit_metni}]})
         
         if arac_adi == "tamamlandi":
-            araclar.github_kodlarini_guncelle(ajan güncellemesi)
+            araclar.dart_importlarini_sanitize_et()
+            araclar.github_kodlarini_guncelle("ajan güncellemesi")
             print("\n" + "🎉"*25)
             print(f"✅ [ÜRETİM HATTI TAMAMLANDI]: {parametreler.get('sonuc', '')}")
             print("🎉"*25)

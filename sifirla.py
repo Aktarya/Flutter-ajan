@@ -1,5 +1,6 @@
 import subprocess
 import sys
+# yeni güncelleme geldiğinde temiz tabanı güncellemek için terminal kodu. git tag -f temiz-taban git push origin -f temiz-taban
 
 def fabrikayi_sifirla():
     print("--- FABRİKA STERİLİZASYON PROTOKOLÜ BAŞLATILDI ---")

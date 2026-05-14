@@ -52,7 +52,9 @@ jobs:
         fi
 
     - name: Paketleri Getir (Kutuphane Kurulumu)
-      run: flutter pub get
+      run: |
+        flutter clean
+        flutter pub get
 
     - name: APK Derle
       run: flutter build apk --release --target-platform android-arm64

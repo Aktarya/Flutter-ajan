@@ -265,35 +265,78 @@ def kutuphane_ekle(paket_adi, surum="any"):
 
 
 # 6.. ARAÇ: UYGULAMA İSMİNİ GÜNCELLEME
+import os
+import re
+
+# 6.A. ARAÇ: MANİFEST, PUBSPEC VE ACTIONS ÜRETİM EMRİNİ EŞZAMANLI GÜNCELLEME
 def uygulama_ismini_degistir(yeni_isim):
     """
-    AndroidManifest.xml içindeki iskelete dokunmadan, 
-    sadece 'android:label' (uygulama adı) değerini güvenle günceller.
+    Seri üretim fabrikası için %100 Senkronizasyon Aracı:
+    1. Görünür tabelayı (AndroidManifest.xml) şık isimle günceller.
+    2. İsmi Dart standartlarına göre sterilize eder (küçük harf, alt çizgi, ingilizce).
+    3. pubspec.yaml ruhunu bu steril isimle günceller.
+    4. YENİ: apk_derle.yml içindeki 'flutter create' komutunu bu steril isme odaklar.
+    Böylece sunucu her yeni APK talebinde iskeleti doğru isimle kurar ve çökme yaşanmaz.
     """
-    tam_yol = os.path.join("android", "app", "src", "main", "AndroidManifest.xml")
+    manifest_yol = os.path.join("android", "app", "src", "main", "AndroidManifest.xml")
+    yaml_yol = "pubspec.yaml"
+    actions_yol = os.path.join(".github", "workflows", "apk_derle.yml")
+    log_mesaji = ""
+    
+    # --- 1. TABELAYI GÜNCELLE (Görünür İsim) ---
     try:
-        if not os.path.exists(tam_yol):
-            return "HATA: AndroidManifest.xml dosyası bulunamadı."
-            
-        with open(tam_yol, "r", encoding="utf-8") as dosya:
-            icerik = dosya.read()
-            
-        # Regex (Düzenli İfade) ile android:label="..." kısmını bulup yenisiyle değiştiriyoruz
-        yeni_icerik, degisim_sayisi = re.subn(
-            r'(android:label=")([^"]*)(")', 
-            rf'\g<1>{yeni_isim}\g<3>', 
-            icerik
-        )
-        
-        if degisim_sayisi == 0:
-            return "HATA: 'android:label' etiketi bulunamadı, isim güncellenemedi."
-            
-        with open(tam_yol, "w", encoding="utf-8") as dosya:
-            dosya.write(yeni_icerik)
-            
-        return f"BAŞARILI: Uygulama ismi kalıcı olarak '{yeni_isim}' yapıldı."
-    except Exception as hata:
-        return f"HATA (İsim Değiştirme): {hata}"
+        if os.path.exists(manifest_yol):
+            with open(manifest_yol, "r", encoding="utf-8") as m:
+                m_icerik = m.read()
+            yeni_m_icerik, degisim = re.subn(r'(android:label=")([^"]*)(")', rf'\g<1>{yeni_isim}\g<3>', m_icerik)
+            if degisim > 0:
+                with open(manifest_yol, "w", encoding="utf-8") as m:
+                    m.write(yeni_m_icerik)
+                log_mesaji += f"Tabela '{yeni_isim}' yapıldı. "
+    except Exception as e:
+        return f"HATA (Tabela): {e}"
+
+    # --- 2. İSMİ STERİLİZE ET (Ruh ve Klasör için) ---
+    ceviri = str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosucgiosu")
+    steril_isim = yeni_isim.translate(ceviri).lower().strip()
+    steril_isim = re.sub(r'[^a-z0-9]+', '_', steril_isim).strip('_')
+    if not steril_isim: steril_isim = "otonom_flutter_app"
+
+    # --- 3. PUBSPEC RUHUNU GÜNCELLE ---
+    try:
+        if os.path.exists(yaml_yol):
+            with open(yaml_yol, "r", encoding="utf-8") as y:
+                y_icerik = y.read()
+            yeni_y_icerik, y_degisim = re.subn(r'^name:\s*([a-zA-Z0-9__]+)', f'name: {steril_isim}', y_icerik, flags=re.MULTILINE)
+            if y_degisim > 0:
+                with open(yaml_yol, "w", encoding="utf-8") as y:
+                    y.write(yeni_y_icerik)
+                log_mesaji += f"pubspec '{steril_isim}' oldu. "
+    except Exception as e:
+        return f"HATA (pubspec): {e}"
+
+    # --- 4. YENİ: ACTIONS ÜRETİM EMRİNİ GÜNCELLE (Seri Üretim Güvencesi) ---
+    try:
+        if os.path.exists(actions_yol):
+            with open(actions_yol, "r", encoding="utf-8") as a:
+                a_icerik = a.read()
+                
+            # flutter create . --project-name eski_isim satırını bul ve taze isimle değiştir
+            yeni_a_icerik, a_degisim = re.subn(
+                r'(flutter create \. --project-name\s+)([a-zA-Z0-9__]+)',
+                rf'\g<1>{steril_isim}',
+                a_icerik
+            )
+            if a_degisim > 0:
+                with open(actions_yol, "w", encoding="utf-8") as a:
+                    a.write(yeni_a_icerik)
+                log_mesaji += f"Actions sunucusu '{steril_isim}' üretimine kilitlendi."
+            else:
+                log_mesaji += "UYARI: apk_derle.yml içinde 'flutter create' komutu bulunamadı."
+    except Exception as e:
+        return f"HATA (Actions): {e}"
+
+    return f"BAŞARILI: {log_mesaji}"
 
 # 7.. ARAÇ: ANDROID İZNİ EKLEME
 def android_izni_ekle(izin_adi):
@@ -789,4 +832,150 @@ def dosya_sil(dosya_yolu):
         return f"HATA (Dosya Silme): {hata}"
 
 
+    """
+    lib/ klasöründeki tüm .dart dosyalarını tarayarak import satırlarındaki 
+    tırnak içi yolları bulur. 'dart:' ile başlayanları temizler, diğerlerine 
+    eksik olan '.dart' uzantısını (as, show, hide eklentilerini bozmadan) ekler.
+    """
+    kok_dizin = "lib"
+    if not os.path.exists(kok_dizin):
+        return "BİLGİ: 'lib/' dizini bulunamadı, import denetimi atlandı."
+        
+    duzeltilen_dosya_sayisi = 0
+    
+    # REGEX MANTIĞI: 'import' kelimesi, ardından boşluklar, ardından tek veya çift tırnak içindeki yol
+    # \2 ifadesi açılan tırnağın aynısıyla kapanmasını garanti eder.
+    import_regex = re.compile(r'(import\s+)([\'"])(.+?)\2')
+    
+    def onarici(eslesme):
+        baslangic = eslesme.group(1) # "import " kısmı
+        tirnak = eslesme.group(2)    # "'" veya '"'
+        yol = eslesme.group(3)       # "package:flutter_svg/flutter_svg" kısmı
+        
+        # Kural 1: Çekirdek Dart kütüphanesi ise (dart:...) uzantı OLMAZ
+        if yol.startswith("dart:"):
+            if yol.endswith(".dart"):
+                yol = yol[:-5]  # Yanlışlıkla konmuş .dart uzantısını sil
+        # Kural 2: Harici paket veya yerel dosya ise uzantı ŞARTTIR
+        else:
+            if not yol.endswith(".dart"):
+                yol += ".dart"  # Eksik uzantıyı tırnağın içine zımbala
+                
+        # Satırın sadece eşleşen tırnaklı kısmını yeniden inşa edip döndürüyoruz.
+        # Tırnaktan sonraki 'as', 'show' gibi kısımlara hiç dokunulmaz!
+        return f"{baslangic}{tirnak}{yol}{tirnak}"
 
+    try:
+        for dizin_yolu, alt_dizinler, dosyalar in os.walk(kok_dizin):
+            for dosya_adi in dosyalar:
+                if dosya_adi.endswith(".dart"):
+                    tam_yol = os.path.join(dizin_yolu, dosya_adi)
+                    
+                    with open(tam_yol, "r", encoding="utf-8") as d:
+                        icerik = d.read()
+                        
+                    # Regex ile tüm import satırlarını bul ve 'onarici' mantığından geçir
+                    yeni_icerik, degisim_sayisi = import_regex.subn(onarici, icerik)
+                    
+                    # Eğer içerikte gerçekten bir onarım yapıldıysa dosyayı güncelle
+                    if degisim_sayisi > 0 and yeni_icerik != icerik:
+                        with open(tam_yol, "w", encoding="utf-8") as d:
+                            d.write(yeni_icerik)
+                        duzeltilen_dosya_sayisi += 1
+                        
+        if duzeltilen_dosya_sayisi > 0:
+            print(f"🛡️ [Otonom Kod Bakımı]: {duzeltilen_dosya_sayisi} Dart dosyasındaki hatalı import uzantıları otomatik olarak onarıldı.")
+        return f"Sanitizasyon başarılı. Güncellenen dosya sayısı: {duzeltilen_dosya_sayisi}"
+        
+    except Exception as hata:
+        print(f"⚠️ [İmport Düzeltici Hatası]: {hata}")
+        return f"HATA: {hata}"
+
+# DÜZENLEYİCİ FONKSİYON 1.
+
+def dart_importlarini_sanitize_et():
+    """
+    lib/ klasöründeki Dart dosyalarını tarar.
+    1. 'dart:' importlarından hatalı .dart uzantılarını siler.
+    2. pubspec.yaml'ı analiz ederek YZ'nin uydurduğu sahte paket isimlerini (absolute import)
+       projenin resmi kök adıyla değiştirir.
+    3. Eksik .dart uzantılarını otonom olarak tamamlar.
+    """
+    kok_dizin = "lib"
+    yaml_yolu = "pubspec.yaml"
+    
+    if not os.path.exists(kok_dizin):
+        return "BİLGİ: 'lib/' dizini bulunamadı."
+        
+    # --- 1. ADIM: PUBSPEC.YAML'DAN RESMİ KİMLİĞİ VE KÜTÜPHANELERİ ÖĞREN ---
+    gercek_proje_adi = "flutter_ajani" # Güvenlik varsayımı
+    yasal_kutuphaneler = {"flutter", "flutter_test"}
+    
+    if os.path.exists(yaml_yolu):
+        try:
+            with open(yaml_yolu, "r", encoding="utf-8") as y:
+                yaml_icerik = y.read()
+                
+            # Projenin resmi adını yakala (name: flutter_ajani)
+            name_match = re.search(r'^name:\s*([a-zA-Z0-9__]+)', yaml_icerik, re.MULTILINE)
+            if name_match:
+                gercek_proje_adi = name_match.group(1).strip()
+                
+            # dependencies bloğunun altındaki kütüphaneleri yakala
+            # "  provider: ^6.0.0" veya "  flutter_svg: any" gibi satırları bulur
+            deps_blok = re.findall(r'^\s{2}([a-zA-Z0-9__]+):', yaml_icerik, re.MULTILINE)
+            for dep in deps_blok:
+                yasal_kutuphaneler.add(dep.strip())
+        except Exception as e:
+            print(f"⚠️ [YAML Okuma Uyarısı]: Kimlik tespiti yapılamadı, varsayılanlar kullanılacak. ({e})")
+
+    duzeltilen_dosya_sayisi = 0
+    import_regex = re.compile(r'(import\s+)([\'"])(.+?)\2')
+    
+    def onarici(eslesme):
+        baslangic = eslesme.group(1)
+        tirnak = eslesme.group(2)
+        yol = eslesme.group(3)
+        
+        # Kural A: Çekirdek kütüphanelerde uzantı olmaz
+        if yol.startswith("dart:"):
+            if yol.endswith(".dart"):
+                yol = yol[:-5]
+        else:
+            # Kural B: Uzantı güvencesi
+            if not yol.endswith(".dart"):
+                yol += ".dart"
+                
+            # --- YENİ KURAL C: HALÜSİNASYON PAKET ADI TEDAVİSİ ---
+            if yol.startswith("package:"):
+                parcalar = yol.split("/")
+                paket_adi = parcalar[0].replace("package:", "").strip()
+                
+                # Eğer paket adı projenin gerçek adı değilse VE yasal kütüphaneler listesinde yoksa:
+                if paket_adi != gercek_proje_adi and paket_adi not in yasal_kutuphaneler:
+                    # YZ'nin uydurduğu ismi resmi projeye yönlendir
+                    parcalar[0] = f"package:{gercek_proje_adi}"
+                    yol = "/".join(parcalar)
+                    
+        return f"{baslangic}{tirnak}{yol}{tirnak}"
+
+    try:
+        for dizin_yolu, alt_dizinler, dosyalar in os.walk(kok_dizin):
+            for dosya_adi in dosyalar:
+                if dosya_adi.endswith(".dart"):
+                    tam_yol = os.path.join(dizin_yolu, dosya_adi)
+                    with open(tam_yol, "r", encoding="utf-8") as d:
+                        icerik = d.read()
+                        
+                    yeni_icerik, degisim_sayisi = import_regex.subn(onarici, icerik)
+                    
+                    if degisim_sayisi > 0 and yeni_icerik != icerik:
+                        with open(tam_yol, "w", encoding="utf-8") as d:
+                            d.write(yeni_icerik)
+                        duzeltilen_dosya_sayisi += 1
+                        
+        if duzeltilen_dosya_sayisi > 0:
+            print(f"🛡️ [Otonom Gümrük Kontrolü]: {duzeltilen_dosya_sayisi} dosyada sahte paket isimleri ve uzantılar kalıcı olarak tedavi edildi.")
+        return f"Başarılı. Onarılan dosya: {duzeltilen_dosya_sayisi}"
+    except Exception as hata:
+        return f"HATA: {hata}"
