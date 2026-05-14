@@ -46,7 +46,7 @@ def zirhli_mesaj_gonder(sohbet_nesnesi, mesaj_metni):
 @api_zirhi()
 def zirhli_icerik_uret(client_nesnesi, talimat_metni):
     """Gemini Client üzerinden güvenli ve zırhlı tekil içerik üretir (generate_content)."""
-    resp = client_nesnesi.models.generate_content(model='gemini-2.5-flash', contents=talimat_metni)
+    resp = client_nesnesi.models.generate_content(model="gemini-3.1-flash-lite", contents=talimat_metni)
     if not resp or not resp.text:
         raise Exception("boş_yanıt")
     return resp
@@ -483,7 +483,7 @@ def svg_uret(gorsel_alani, dosya_alt_yolu, tema_ozeti, istek):
         if gorsel_alani not in SVG_OTURUMLARI:
             # [GÜNCELLEME - YENİ SDK]: start_chat yerine client.chats.create kullanıyoruz
             p_chat = client.chats.create(
-                model="gemini-2.5-flash",
+                model="gemini-3.1-flash-lite",
                 history=[
                     types.Content(role="user", parts=[types.Part.from_text(text=f"SİSTEM: {RESSAM_TALIMATI}")]),
                     types.Content(role="model", parts=[types.Part.from_text(text="Anlaşıldı. Sadece ham SVG kodları yazacağım.")])
@@ -491,7 +491,7 @@ def svg_uret(gorsel_alani, dosya_alt_yolu, tema_ozeti, istek):
             )
             
             c_chat = client.chats.create(
-                model="gemini-2.5-flash",
+                model="gemini-3.1-flash-lite",
                 history=[
                     types.Content(role="user", parts=[types.Part.from_text(text=f"SİSTEM: {SVG_KRITIK_TALIMATI} Proje Teması: {tema_ozeti}")]),
                     types.Content(role="model", parts=[types.Part.from_text(text="Anlaşıldı. Sadece istenen formatta denetim sonucu vereceğim.")])
@@ -598,7 +598,7 @@ def android_logosu_uret(istek, tema_ozeti):
         
         # [GÜNCELLEME - YENİ SDK]: İZOLASYON: İki bağımsız chat nesnesini yeni SDK ile açıyoruz
         logo_painter_chat = client.chats.create(
-            model="gemini-2.5-flash",
+            model="gemini-3.1-flash-lite",
             history=[
                 types.Content(role="user", parts=[types.Part.from_text(text=f"SİSTEM: {LOGO_RESSAM_TALIMATI}")]),
                 types.Content(role="model", parts=[types.Part.from_text(text="Anlaşıldı. Sadece ham Android Vector XML kodları yazacağım.")])
@@ -606,7 +606,7 @@ def android_logosu_uret(istek, tema_ozeti):
         )
         
         logo_critic_chat = client.chats.create(
-            model="gemini-2.5-flash",
+            model="gemini-3.1-flash-lite",
             history=[
                 types.Content(role="user", parts=[types.Part.from_text(text=f"SİSTEM: {LOGO_KRITIK_TALIMATI} Proje Teması: {tema_ozeti}")]),
                 types.Content(role="model", parts=[types.Part.from_text(text="Anlaşıldı. XML hatalarını ve tema uyumunu denetleyip sadece istenen formatta cevap vereceğim.")])
@@ -683,78 +683,7 @@ def android_logosu_uret(istek, tema_ozeti):
         else:
             return f"HATA: Logo üretimi 3 denemeden sonra bile başarısız oldu. Son Rapor: {rapor_detayi}"
         
-    except Exception as hata:
-        return f"HATA (Android Logo Alt-Ajanı): {hata}"     
-        # Otonom Döngü
-        maksimum_tur = 3
-        son_logo_xml = ""
-        rapor_detayi = ""
-        mevcut_istek = istek
 
-        for tur in range(1, maksimum_tur + 1):
-            rapor_detayi += f"Tur {tur}: "
-            
-            # --- ADIM 1: Çizer ---
-            painter_response = logo_painter_chat.send_message(mevcut_istek)
-            xml_kodu = painter_response.text.strip()
-            
-            # Gevezelik filtresi
-            match = re.search(r'<vector[\s\S]*?</vector>', xml_kodu, re.IGNORECASE)
-            if match:
-                xml_kodu = match.group(0)
-            
-            if not xml_kodu.startswith("<vector"):
-                rapor_detayi += "HATA: Çizer geçerli bir <vector> XML bloğu üretemedi. "
-                break
-                
-            son_logo_xml = xml_kodu
-            
-            # --- ADIM 2: Dedektif ---
-            critic_response = logo_critic_chat.send_message(f"Denetle:\n{xml_kodu}")
-            critic_feedback = critic_response.text.strip()
-            
-            rapor_detayi += f"Dedektif: {critic_feedback}. "
-            
-            # --- ADIM 3: Karar ---
-            if "KOD_MÜKEMMEL" in critic_feedback:
-                rapor_detayi += "Logo mükemmel bulundu. "
-                break
-            else:
-                mevcut_istek = critic_feedback
-                
-        # Döngü bittiğinde elimizdeki son kodu kaydet
-        if son_logo_xml.startswith("<vector"):
-            # 1. ADIM: Logo dosyasını yaz
-            with open(logo_yolu, "w", encoding="utf-8") as dosya:
-                dosya.write(son_logo_xml)
-                
-            # 2. ADIM: Manifest tabelasını güncelle (Enjeksiyon)
-            with open(manifest_yolu, "r", encoding="utf-8") as dosya:
-                manifest_icerik = dosya.read()
-                
-            # GÜVENLİK: Eski sistemlerde çakışma yapan android:roundIcon="..." tanımını kökünden temizle
-            manifest_icerik = re.sub(r'\sandroid:roundIcon="[^"]*"', '', manifest_icerik)
-            
-            # android:icon="..." değerini bizim yeni vektörel logomuza yönlendir
-            manifest_icerik, degisim_sayisi = re.subn(
-                r'android:icon="[^"]*"', 
-                'android:icon="@drawable/otonom_logo"', 
-                manifest_icerik
-            )
-            
-            if degisim_sayisi == 0:
-                return "HATA: Manifest içinde 'android:icon' niteliği bulunamadı. Logo dosyası yazıldı ama tabelaya bağlanamadı."
-                
-            with open(manifest_yolu, "w", encoding="utf-8") as dosya:
-                dosya.write(manifest_icerik)
-                
-            return (
-                f"BAŞARILI: Android logosu çizildi, '{logo_yolu}' konumuna yazıldı ve Manifest'e bağlandı. "
-                f"Denetim Özeti: ({rapor_detayi.strip()})"
-            )
-        else:
-            return f"HATA: Logo üretimi 3 denemeden sonra bile başarısız oldu. Son Rapor: {rapor_detayi}"
-        
     except Exception as hata:
         return f"HATA (Android Logo Alt-Ajanı): {hata}"
 # 12. ARAÇ: KULLANICIYA SOR / DANIŞ (İNSAN FRENİ)

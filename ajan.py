@@ -87,7 +87,7 @@ while adim < maksimum_adim:
     while deneme < maksimum_deneme:
         try:
             cevap = client.models.generate_content(
-                model='gemini-2.5-flash',
+                model="gemini-3.1-flash-lite",
                 contents=gecmis
             )
             break  # Başarılı olursa iç döngüyü anında kır ve devam et
