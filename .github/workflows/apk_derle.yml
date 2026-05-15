@@ -32,7 +32,7 @@ jobs:
           echo "Kalıcı proje dosyaları bulunamadı. Üretiliyor..."
           
           # Hatalı --force bayrağı kaldırıldı, standart ve doğru kullanım:
-          flutter create . --project-name flutter_ajani
+          flutter create . --project-name turan_defteri
           
           # Dışarıda duran main.dart dosyasını lib/ klasörüne taşı
           mkdir -p lib

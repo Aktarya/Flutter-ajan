@@ -55,14 +55,31 @@ Eğer tüm üretim hattını başarıyla tamamlayıp GitHub'a pushladıysan, "ar
 
 # Test Görevi (Tüm boru hattını çalıştıracak zengin bir senaryo)
 gorev = """
-Otonom Üretim Hattını (Pipeline) devreye al. Hedefimiz: 'Zaman Çarkı' adında, Pomodoro tekniğine dayalı şık bir odaklanma ve verimlilik uygulaması geliştirmek.
+Bana "Turan Saha Defteri" adında, araştırmacıların sahada not tutmasını sağlayan çok sayfalı bir Flutter uygulaması yap. Senden şu özellikleri eksiksiz olarak kodlamanı istiyorum:
 
-Adım 1: Uygulama adını 'Zaman Çarkı' yap ve internet iznini ekle. Gerekirse durum yönetimi için 'provider' kütüphanesini ekle.
-Adım 2: 'assets/' klasörünü pubspec.yaml'a tanımla. Ardından 'svg_uret' aracıyla arayüzde kullanmak üzere koyu temalı, soyut dairesel bir arkaplan SVG'si üret.
-Adım 3: 'android_logosu_uret' aracıyla uygulamaya yakışır, modern ve vektörel bir Pomodoro/Saat ikonu çizdir.
-Adım 4: 'dart_kodu_yaz' aracını kullanarak ana işlevselliği barındıran temiz, modüler ve estetik bir Pomodoro sayacı kodla.
-Adım 5: Geliştirme sürecinin uygun gördüğün kritik bir noktasında 'kullaniciya_sor' aracını tetikleyerek tema renkleri veya varsayılan çalışma süresi (örn: 25 dk mı 30 dk mı?) hakkında bana danış.
-Adım 6: Tüm entegrasyon bitince kodları GitHub'a gönder ('Zaman Çarkı üretim hattı tamamlandı' mesajıyla) ve Actions sürecini başlat.
+1. Temel Altyapı ve Kütüphaneler:
+
+    Uygulama adı "Turan Defteri" olacak.
+
+    Durum yönetimi için kesinlikle provider kütüphanesini kullan.
+
+    Verilerin cihazda kalıcı olması için shared_preferences kütüphanesini ekle ve kullan.
+
+2. Görsel Motor (Araç Kullanımı):
+
+    Arayüz teması bozkır konseptine uygun olarak "Koyu Yeşil ve Toprak Rengi" tonlarında olmalı.
+
+    Uygulama için çadır (yurt) veya pusula temalı minimalist bir SVG arkaplan ve ona uygun bir Android logosu üret.
+
+3. Arayüz ve Mantık Kuralları:
+
+    Uygulamada "Alt Navigasyon Çubuğu" (BottomNavigationBar) olmalı ve 2 farklı sayfaya geçiş yapabilmeli: "Notlar" ve "Yeni Kayıt".
+
+    "Yeni Kayıt" sayfasında başlık ve içerik girmek için iki adet TextField ve bir adet "Kaydet" butonu olmalı.
+
+    "Notlar" sayfasında, kaydedilen bu notlar bir ListView.builder içinde kartlar (Card) halinde alt alta listelenmeli.
+
+    Kodları tek bir main.dart dosyasına tıkıştırmak yerine, modelleri ve ekranları mantıklı sınıflara böl.
 """
 
 # Yapay zekaya göndereceğimiz sohbet geçmişi
